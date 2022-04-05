@@ -1,0 +1,10 @@
+name: Sparrow Wallet (1.6.0)
+
+on:
+  workflow_dispatch
+
+jobs:
+  call-sparrowwallet-workflow:
+    uses: ./.github/workflows/sparrowwallet-workflow.yml
+    with:
+      tag: 1.6.0

@@ -1,0 +1,61 @@
+# Reusable workflow for building Sparrow Wallet
+# Should be called for each version that needs to be built
+name: Sparrow Wallet workflow
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: 'Github tag (release) to build'
+
+jobs:
+  repro_build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        include:
+          # specify the build script to be executed for each different OS
+          - os: ubuntu-latest
+            build_script: "${GITHUB_WORKSPACE}/.github/scripts/sparrowwallet/build-linux.sh"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Checkout our repo
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Checkout Sparrow Wallet repo
+      uses: actions/checkout@v3
+      with:
+        repository: sparrowwallet/sparrow
+        ref: ${{ inputs.tag }}
+        path: sparrow
+        submodules: recursive
+
+    - name: Download Sparrow Wallet binaries from GitHub
+      uses: dsaltares/fetch-gh-release-asset@master
+      with:
+        repo: sparrowwallet/sparrow
+        version: "tags/${{ inputs.tag }}"
+        file: "sparrow-${{ inputs.tag }}.tar.gz"
+        target: "sparrow/sparrow-${{ inputs.tag }}.tar.gz"
+  
+    - name: Starting build
+      run: echo "$(date) - Starting reproducible build for sparrowwallet ${{ inputs.tag }}"
+   
+    - name: Run build script on Linux
+      if: ${{ matrix.os == 'ubuntu-latest' }}
+      run: "${{ matrix.build_script }} ${{ inputs.tag }}"
+      shell: bash {0}
+      working-directory: ./sparrow
+
+    - name: Upload output
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: output
+        path: sparrow/output.txt     

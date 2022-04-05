@@ -1,0 +1,47 @@
+# Reusable workflow for building Coldcard firmware
+# Should be called for each version that needs to be built
+name: Coldcard firmware workflow
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: 'Github tag (release) to build'
+      version:
+        type: string
+        required: true
+        description: 'Actual (short) version of the build, e.g. 4.1.3'
+
+jobs:
+  repro_build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout our repo
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Checkout coldcard firmware repo
+      uses: actions/checkout@v3
+      with:
+        repository: Coldcard/firmware
+        ref: ${{ inputs.tag }}
+        path: firmware
+
+    - name: Starting build
+      run: echo "$(date) - Starting reproducible build for coldcard firmware ${{ inputs.version }}"
+   
+    - name: Run build script
+      run: ${GITHUB_WORKSPACE}/.github/scripts/coldcard-fw/build-linux.sh ${{ inputs.version }}
+      shell: bash {0}
+      working-directory: ./firmware
+
+    - name: Upload output
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: output
+        path: firmware/output.txt     
